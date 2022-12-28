@@ -7,6 +7,8 @@ const OpeningHours = ({ data, closedDays, name, address }) => {
       <Text>Name: {name}</Text>
       <Text>Address: {address}</Text>
 
+        <Text>Open on:</Text>
+
       <Box pb={2}>
         {data?.map(([hours, days], idx) => {
           return (
