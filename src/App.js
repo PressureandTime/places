@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useQuery } from 'react-query';
-import { Tabs, TabList, TabPanels, Tab, TabPanel, Text, Box } from '@chakra-ui/react';
+import { Tabs, TabList, TabPanels, Tab, TabPanel, Text } from '@chakra-ui/react';
+import OpeningHours from './components/OpeningHours';
 
 function App() {
   const url = `/GXvPAor1ifNfpF0U5PTG0w`;
   const url2 = `ohGSnJtMIC5nPfYRi_HTAg`;
+
+  const [dataFromAPI, setDataFromAPI] = useState({});
 
   const [fetchURL, setFetchURL] = useState(url);
 
@@ -15,7 +18,11 @@ function App() {
     return response;
   };
 
-  const { isLoading, error, data, refetch } = useQuery(['place', fetchURL], getPlace);
+  const { isLoading, error, data, refetch } = useQuery(['place', fetchURL], getPlace, {
+    onSuccess: (data) => {
+      setDataFromAPI(data?.opening_hours?.days);
+    },
+  });
 
   if (isLoading) return <Text>Loading...</Text>;
 
@@ -30,6 +37,37 @@ function App() {
     refetch();
   };
 
+  function getTheDaysThatHaveSameOpeningHours() {
+    const daysAndHours = Object.entries(dataFromAPI);
+
+    const daysWithSameHours = daysAndHours.reduce((acc, [day, hours]) => {
+      const hoursString = hours?.map((hour) => `${hour.start}-${hour.end}`).join(',');
+      if (acc[hoursString]) {
+        acc[hoursString]?.push(day);
+      } else {
+        acc[hoursString] = [day];
+      }
+      return acc;
+    }, {});
+
+    const days = Object.values(daysWithSameHours);
+    const flattenDays = days.flat();
+
+    const daysInAWeek = [
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday',
+    ];
+
+    const closedDays = daysInAWeek.filter((day) => !flattenDays.includes(day));
+
+    return { daysWithSameHours, closedDays };
+  }
+
   return (
     <Tabs onChange={handleChange}>
       <TabList>
@@ -38,64 +76,20 @@ function App() {
       </TabList>
       <TabPanels>
         <TabPanel textAlign='left'>
-          <Text>Name: {data?.displayed_what}</Text>
-          <Text pb={1}>Address: {data?.displayed_where}</Text>
-          <Text pb={1} fontSize='lg'>
-            Opening Hours
-          </Text>
-          <Box>
-            <Box pb={2}>
-              Monday - Friday:{' '}
-              {data?.opening_hours?.days?.monday?.map((hour, idx) => {
-                return (
-                  <Text key={idx}>
-                    {hour?.start} - {hour?.end}
-                  </Text>
-                );
-              })}
-            </Box>
-
-            <Box pb={2}>Saturday - Sunday: closed</Box>
-          </Box>
+          <OpeningHours
+            data={Object.entries(getTheDaysThatHaveSameOpeningHours().daysWithSameHours)}
+            closedDays={getTheDaysThatHaveSameOpeningHours().closedDays}
+            name={data?.displayed_what}
+            address={data?.displayed_where}
+          />
         </TabPanel>
         <TabPanel textAlign='left'>
-          <Text>Name: {data?.displayed_what}</Text>
-          <Text pb={1}>Address: {data?.displayed_where}</Text>
-          <Text fontSize='lg' pb={1}>
-            Opening Hours
-          </Text>
-          <Box pb={2}>
-            <Text pb={2}>Monday: closed</Text>
-            Tuesday - Friday :{' '}
-            {data?.opening_hours?.days?.tuesday?.map((hour, idx) => {
-              return (
-                <Text key={idx}>
-                  {hour?.start} - {hour?.end}
-                </Text>
-              );
-            })}
-          </Box>
-
-          <Box pb={2}>
-            Saturday:{' '}
-            {data?.opening_hours?.days?.saturday?.map((hour, idx) => {
-              return (
-                <Text key={idx}>
-                  {hour?.start} - {hour?.end}
-                </Text>
-              );
-            })}
-          </Box>
-          <Box pb={2}>
-            Sunday:{' '}
-            {data?.opening_hours?.days?.sunday?.map((hour, idx) => {
-              return (
-                <Text key={idx}>
-                  {hour?.start} - {hour?.end}
-                </Text>
-              );
-            })}
-          </Box>
+          <OpeningHours
+            data={Object.entries(getTheDaysThatHaveSameOpeningHours().daysWithSameHours)}
+            closedDays={getTheDaysThatHaveSameOpeningHours().closedDays}
+            name={data?.displayed_what}
+            address={data?.displayed_where}
+          />
         </TabPanel>
       </TabPanels>
     </Tabs>
